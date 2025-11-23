@@ -1,5 +1,5 @@
 module.exports = {
-    admins: ["8062864886"],  // ID ADMIN PHẢI LÀ STRING
+    admins: ["8062864886"],
 
     bots: [
         { token: "8470961208:AAGfEuFp8YYhDevvQTrAZKO3Bci60nygGno", name: "BOT 1" },
