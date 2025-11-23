@@ -1,98 +1,100 @@
 const fs = require("fs");
-const TelegramBot = require("node-telegram-bot-api");
-const { admins, bots } = require("./config");
+const { Telegraf } = require("telegraf");
+const { bots, admins } = require("./config");
 
-// ========== KIỂM TRA ADMIN ==========
-function isAdmin(id) {
-    return admins.includes(id);
+// ===================== LOAD FILE WAR =====================
+let warLines = [];
+try {
+    warLines = fs.readFileSync("war.txt", "utf8").split("\n").filter(x => x.trim());
+} catch (e) {
+    console.log("⚠ Chưa có war.txt hoặc lỗi đọc file!");
 }
 
-function setupBot(botConfig) {
-    const bot = new TelegramBot(botConfig.token, { polling: true });
+// ===================== KIỂM TRA ADMIN =====================
+function isAdmin(id) {
+    return admins.includes(String(id)); // so sánh dạng chuỗi để tránh lỗi
+}
 
-    console.log("BOT ĐANG CHẠY:", botConfig.name);
+// ===================== KHỞI CHẠY MỖI BOT =====================
+bots.forEach(botInfo => {
 
-    // MENU
+    const bot = new Telegraf(botInfo.token);
+
+    // báo bot đang chạy
+    bot.launch()
+        .then(() => console.log(`${botInfo.name} ĐÃ CHẠY ✔`))
+        .catch(err => console.log(`${botInfo.name} LỖI TOKEN ❌`, err));
+
+    // ===================== MENU =====================
     const menuText = `
 🔥 <b>MENU BOT</b>
 
-• /menu – mở menu
-• /random – 1 dòng random từ war.txt
-• /tag @user – tag + random war.txt
+• /random – gửi 1 dòng random trong war.txt
+• /tag @user – tag 1 người + 1 dòng war.txt
+• /menu – xem menu
 
 <b>ADMIN:</b>
 • /addadmin ID
 • /deladmin ID
-• /admins
+• /admins – xem danh sách admin
 `;
 
-    bot.onText(/\/menu/, (msg) => {
-        if (!isAdmin(msg.from.id))
-            return bot.sendMessage(msg.chat.id, "❌ Bạn không có quyền.");
+    bot.command("menu", ctx => {
+        if (!isAdmin(ctx.from.id)) 
+            return ctx.reply("❌ Bạn không có quyền.");
 
-        bot.sendMessage(msg.chat.id, menuText, { parse_mode: "HTML" });
+        return ctx.reply(menuText, { parse_mode: "HTML" });
     });
 
-    // RANDOM WAR
-    bot.onText(/\/random/, (msg) => {
-        if (!isAdmin(msg.from.id))
-            return bot.sendMessage(msg.chat.id, "❌ Bạn không có quyền.");
+    // ===================== RANDOM WAR =====================
+    bot.command("random", ctx => {
+        if (!isAdmin(ctx.from.id))
+            return ctx.reply("❌ Bạn không có quyền.");
 
-        const lines = fs.readFileSync("war.txt", "utf8").split("\n").filter(t => t.trim());
-        const text = lines[Math.floor(Math.random() * lines.length)];
-
-        bot.sendMessage(msg.chat.id, text);
+        let line = warLines[Math.floor(Math.random() * warLines.length)];
+        ctx.reply(line);
     });
 
-    // TAG USER (HỖ TRỢ /tag @username)
-    bot.onText(/\/tag\s+@([A-Za-z0-9_]+)/, (msg, match) => {
-        if (!isAdmin(msg.from.id))
-            return bot.sendMessage(msg.chat.id, "❌ Bạn không có quyền.");
+    // ===================== TAG + WAR =====================
+    bot.hears(/\/tag (.+)/, ctx => {
+        if (!isAdmin(ctx.from.id))
+            return ctx.reply("❌ Bạn không có quyền.");
 
-        const username = match[1];
-        const lines = fs.readFileSync("war.txt", "utf8").split("\n").filter(t => t.trim());
-        const text = lines[Math.floor(Math.random() * lines.length)];
+        let user = ctx.match[1];  
+        let line = warLines[Math.floor(Math.random() * warLines.length)];
 
-        bot.sendMessage(msg.chat.id, `@${username} ${text}`, {
-            parse_mode: "Markdown"
-        });
+        ctx.reply(`${user} ${line}`);
     });
 
-    // ADD ADMIN
-    bot.onText(/\/addadmin (\d+)/, (msg, match) => {
-        if (!isAdmin(msg.from.id))
-            return bot.sendMessage(msg.chat.id, "❌ Bạn không có quyền.");
+    // ===================== THÊM ADMIN =====================
+    bot.hears(/\/addadmin (\d+)/, ctx => {
+        if (!isAdmin(ctx.from.id)) 
+            return ctx.reply("❌ Bạn không có quyền.");
 
-        const id = Number(match[1]);
-        if (admins.includes(id))
-            return bot.sendMessage(msg.chat.id, "⚠ ID đã là admin.");
+        let newID = ctx.match[1];
+        if (!admins.includes(newID)) admins.push(newID);
 
-        admins.push(id);
-        bot.sendMessage(msg.chat.id, `✅ Thêm admin: ${id}`);
+        ctx.reply(`✔ Đã thêm admin: ${newID}`);
     });
 
-    // DELETE ADMIN
-    bot.onText(/\/deladmin (\d+)/, (msg, match) => {
-        if (!isAdmin(msg.from.id))
-            return bot.sendMessage(msg.chat.id, "❌ Bạn không có quyền.");
+    // ===================== XOÁ ADMIN =====================
+    bot.hears(/\/deladmin (\d+)/, ctx => {
+        if (!isAdmin(ctx.from.id))
+            return ctx.reply("❌ Bạn không có quyền.");
 
-        const id = Number(match[1]);
-        const i = admins.indexOf(id);
+        let removeID = ctx.match[1];
+        let i = admins.indexOf(removeID);
+        if (i !== -1) admins.splice(i, 1);
 
-        if (i === -1)
-            return bot.sendMessage(msg.chat.id, "⚠ ID không có trong admin.");
-
-        admins.splice(i, 1);
-        bot.sendMessage(msg.chat.id, `🗑 Xóa admin: ${id}`);
+        ctx.reply(`✔ Đã xoá admin: ${removeID}`);
     });
 
-    // ADMIN LIST
-    bot.onText(/\/admins/, (msg) => {
-        if (!isAdmin(msg.from.id))
-            return bot.sendMessage(msg.chat.id, "❌ Bạn không có quyền.");
+    // ===================== XEM ADMIN =====================
+    bot.command("admins", ctx => {
+        if (!isAdmin(ctx.from.id))
+            return ctx.reply("❌ Bạn không có quyền.");
 
-        bot.sendMessage(msg.chat.id, `👑 ADMIN LIST:\n${admins.join("\n")}`);
+        ctx.reply("📌 ADMIN LIST:\n" + admins.join("\n"));
     });
-}
 
-bots.forEach(bot => setupBot(bot));
+});
