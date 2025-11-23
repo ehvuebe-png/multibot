@@ -1,140 +1,124 @@
+// ==========================
+// MULTI-BOT MAX SPEED SPAM
+// ==========================
+
 const fs = require("fs");
 const { Telegraf } = require("telegraf");
-const { bots, admins } = require("./config");
 
-// ===================== LOAD FILE WAR =====================
+// ========================= CONFIG =========================
+const admins = ["8062864886"]; // ID admin của m
+
+const bots = [
+    { token: "8470961208:AAGfEuFp8YYhDevvQTrAZKO3Bci60nygGno", name: "BOT 1" },
+    { token: "8592926668:AAEJNY1JVcWzCi0_X4FbByh9zj6brkaPYec", name: "BOT 2" },
+    { token: "8516563029:AAEh_n_m8dQodpIwqrxfvfO-uQbqaM6c148", name: "BOT 3" },
+    { token: "8537687387:AAE4eSA-svj_JEyaR3ZEiJmbNlrrXVjvcd8", name: "BOT 4" },
+    { token: "7525940881:AAGLlOQEE8W1WmRiXtiUlPuzwpBgcMPGA4k", name: "BOT 5" },
+    { token: "8282249419:AAFmsoqmiR005ODtCiFoDiQeXjFZjxyYXfU", name: "BOT 6" }
+];
+
+// ========================= LOAD WAR =========================
 function loadWar() {
     try {
-        return fs.readFileSync("war.txt", "utf8")
-            .split("\n")
-            .filter(x => x.trim());
+        return fs.readFileSync("war.txt", "utf8").split("\n").filter(x => x.trim());
     } catch {
         return [];
     }
 }
 
-// ===================== CHECK ADMIN =====================
+// ========================= CHECK ADMIN =========================
 function isAdmin(id) {
     return admins.includes(String(id));
 }
 
-// ===================== SPAM THREAD =====================
-async function spamLoop(ctx, tag, fullMode, userList, bot) {
-    if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Không có quyền.");
+// ========================= SPAM CORE (MAX SPEED) =========================
+async function spamLoop(ctx, tag, mode, bot) {
+    if (!isAdmin(ctx.from.id))
+        return ctx.reply("❌ Bạn không có quyền.");
 
     bot.stopSpam[ctx.chat.id] = false;
-    let war = loadWar();
+    const war = loadWar();
 
-    if (war.length === 0) return ctx.reply("⚠ war.txt rỗng!");
+    if (war.length === 0) return ctx.reply("⚠ war.txt trống.");
 
-    ctx.reply(`🚀 BẮT ĐẦU SPAM\nTag: ${tag ? tag : "Không dùng tag"}\nMode: ${fullMode ? "FULL" : "1 dòng random"}`);
+    ctx.reply(`🚀 BẮT ĐẦU SPAM MAX SPEED\nMode: ${mode}\nTag: ${tag ?? "Không dùng"}`);
 
     while (!bot.stopSpam[ctx.chat.id]) {
-        if (fullMode) {
-            // Full war.txt
+
+        if (mode === "all") {
             for (let line of war) {
                 if (bot.stopSpam[ctx.chat.id]) break;
 
                 let msg = tag ? `${tag} ${line}` : line;
-                await ctx.reply(msg);
-                if (bot.delay > 0) await new Promise(r => setTimeout(r, bot.delay));
+
+                ctx.reply(msg).catch(() => {}); // bỏ lỗi flood
             }
         } else {
-            // 1 dòng random loop
             let line = war[Math.floor(Math.random() * war.length)];
             let msg = tag ? `${tag} ${line}` : line;
-            await ctx.reply(msg);
-            if (bot.delay > 0) await new Promise(r => setTimeout(r, bot.delay));
+
+            ctx.reply(msg).catch(() => {}); // bỏ lỗi flood
         }
     }
 
     ctx.reply("🛑 ĐÃ DỪNG SPAM.");
 }
 
-// ===================== START ALL BOTS =====================
-bots.forEach(botInfo => {
+// ========================= KHỞI TẠO 6 BOT =========================
+bots.forEach(info => {
 
-    const bot = new Telegraf(botInfo.token);
-
-    bot.delay = 0;
+    const bot = new Telegraf(info.token);
     bot.stopSpam = {};
 
+    // BOT READY
     bot.launch()
-        .then(() => console.log(`${botInfo.name} RUN ✔`))
-        .catch(err => console.log(`${botInfo.name} TOKEN ERROR ❌`, err));
+        .then(() => console.log(`${info.name} ĐÃ CHẠY ✔`))
+        .catch(err => console.log(`${info.name} TOKEN LỖI ❌`, err));
 
-
-    // ===================== MENU =====================
+    // ========================= MENU =========================
     bot.command("menu", ctx => {
-        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Bạn không có quyền.");
+        if (!isAdmin(ctx.from.id))
+            return ctx.reply("❌ Bạn không có quyền.");
 
         ctx.reply(`
-🔥 <b>MENU SPAM BOT</b>
+🔥 MENU SPAM MAX SPEED
 
-📌 SPAM
-• /spam – spam random war.txt (loop)
-• /spamall – spam hết war.txt (loop)
-• /spamtag @user – spam hết war.txt + tag user
+/spam – random 1 dòng MAX SPEED
+/spamall – spam hết war.txt MAX SPEED
+/spamtag @user – spam tag + war.txt MAX SPEED
+/stop – dừng spam
 
-⚙ CẤU HÌNH
-• /setdelay X – đặt delay (ms)
-• /stop – dừng spam
-
-👑 ADMIN
-• /admins – danh sách admin
-• /addadmin ID
-• /deladmin ID
-`, { parse_mode: "HTML" });
+📄 war.txt đang được đọc.
+👑 Admin: ${admins.join(", ")}
+        `);
     });
 
-
-    // ===================== SET DELAY =====================
-    bot.command("setdelay", ctx => {
-        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Không có quyền.");
-
-        let parts = ctx.message.text.split(" ");
-        if (!parts[1]) return ctx.reply("❌ Sai cú pháp: /setdelay 100");
-
-        bot.delay = parseInt(parts[1]);
-        ctx.reply(`⏱ Delay đặt thành: ${bot.delay}ms`);
+    // ========================= SPAM RANDOM =========================
+    bot.command("spam", ctx => {
+        spamLoop(ctx, null, "random", bot);
     });
 
+    // ========================= SPAM ALL =========================
+    bot.command("spamall", ctx => {
+        spamLoop(ctx, null, "all", bot);
+    });
 
-    // ===================== STOP =====================
+    // ========================= SPAM TAG =========================
+    bot.hears(/\/spamtag (.+)/, ctx => {
+        let tag = ctx.match[1];
+        spamLoop(ctx, tag, "all", bot);
+    });
+
+    // ========================= STOP =========================
     bot.command("stop", ctx => {
-        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Không có quyền.");
+        if (!isAdmin(ctx.from.id))
+            return ctx.reply("❌ Không có quyền.");
 
         bot.stopSpam[ctx.chat.id] = true;
-        ctx.reply("🛑 Đã gửi yêu cầu dừng spam.");
+        ctx.reply("🛑 Đang dừng spam...");
     });
 
-
-    // ===================== SPAM RANDOM =====================
-    bot.command("spam", ctx => {
-        spamLoop(ctx, null, false, null, bot);
-    });
-
-
-    // ===================== SPAM FULL =====================
-    bot.command("spamall", ctx => {
-        spamLoop(ctx, null, true, null, bot);
-    });
-
-
-    // ===================== SPAM + TAG USER =====================
-    bot.hears(/\/spamtag (@\S+)/, ctx => {
-        let tag = ctx.match[1];
-        spamLoop(ctx, tag, true, null, bot);
-    });
-
-
-    // ===================== ADMIN LIST =====================
-    bot.command("admins", ctx => {
-        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Không có quyền.");
-        ctx.reply("📌 ADMIN LIST:\n" + admins.join("\n"));
-    });
-
-    // ===================== ADD ADMIN =====================
+    // ========================= THÊM ADMIN =========================
     bot.hears(/\/addadmin (\d+)/, ctx => {
         if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Không có quyền.");
         let id = ctx.match[1];
@@ -142,13 +126,22 @@ bots.forEach(botInfo => {
         ctx.reply(`✔ Đã thêm admin: ${id}`);
     });
 
-    // ===================== DEL ADMIN =====================
+    // ========================= XÓA ADMIN =========================
     bot.hears(/\/deladmin (\d+)/, ctx => {
         if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Không có quyền.");
         let id = ctx.match[1];
-        let index = admins.indexOf(id);
-        if (index !== -1) admins.splice(index, 1);
+        let i = admins.indexOf(id);
+        if (i !== -1) admins.splice(i, 1);
         ctx.reply(`✔ Đã xoá admin: ${id}`);
     });
 
+    // ========================= LIST ADMIN =========================
+    bot.command("admins", ctx => {
+        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Không có quyền.");
+        ctx.reply("📌 ADMIN LIST:\n" + admins.join("\n"));
+    });
+
 });
+
+// Keep alive
+setInterval(() => {}, 1000);
