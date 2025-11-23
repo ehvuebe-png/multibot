@@ -1,41 +1,27 @@
-import { Telegraf } from "telegraf";
+const { Telegraf } = require("telegraf");
 
-const TOKENS = [
-  "8282249419:AAGPJNE0Y73bH-i5p6T1uzL7-H2S8HtmVEg",
-  "7525940881:AAHOwB69-Iiku5m_F0unGRROr-6suZYmHGM",
-  "8537687387:AAGkmQKbderww-iNlZE0Gyf2SO_0Beslugk",
-  "8516563029:AAHzBLkrLM3QH__IxacyDkAoocG5zZZnTXs",
-  "8592926668:AAEG9CVPJVYk4QnhQ7AHK1I8Fa5mJklt4aA",
-  "8470961208:AAFsigYqFZ6nuyDW4wdvIVqjIbOuePpl9FQ"
+const tokens = [
+  "8470961208:AAGfEuFp8YYhDevvQTrAZKO3Bci60nygGno",
+  "8516563029:AAEh_n_m8dQodpIwqrxfvfO-uQbqaM6c148",
+  "7525940881:AAGLlOQEE8W1WmRiXtiUlPuzwpBgcMPGA4k",
+  "8282249419:AAFmsoqmiR005ODtCiFoDiQeXjFZjxyYXfU",
+  "8537687387:AAE4eSA-svj_JEyaR3ZEiJmbNlrrXVjvcd8",
+  "8592926668:AAEJNY1JVcWzCi0_X4FbByh9zj6brkaPYec"
 ];
 
-function runBot(token) {
+tokens.forEach((token, index) => {
   const bot = new Telegraf(token);
 
-  bot.start((ctx) =>
-    ctx.reply("Bots đang hoạt động ✅\nMenu:\n /help\n /start")
-  );
+  bot.start((ctx) => ctx.reply(`BOT ${index + 1} đã chạy ✓`));
 
-  bot.help((ctx) => ctx.reply("Lệnh hỗ trợ:\n/start\n/help"));
-
-  bot.on("text", (ctx) => {
-    ctx.reply("Bot đang phản hồi tin nhắn của bạn 💬");
+  bot.command("menu", (ctx) => {
+    ctx.reply(`Menu của BOT ${index + 1}`);
   });
 
-  bot.launch().then(() => {
-    console.log("Bot chạy:", token);
-  });
-
-  return bot;
-}
-
-TOKENS.forEach((token) => {
-  try {
-    runBot(token);
-  } catch (e) {
-    console.log("Lỗi bot:", token, e);
-  }
+  bot.launch()
+    .then(() => console.log(`BOT ${index + 1} ĐÃ CHẠY ✓`))
+    .catch((err) => console.log(`BOT ${index + 1} LỖI TOKEN ❌`, err.message));
 });
 
-process.once("SIGINT", () => process.exit(0));
-process.once("SIGTERM", () => process.exit(0));
+// Render không cần port — giữ tiến trình sống
+setInterval(() => {}, 1000);
