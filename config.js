@@ -1,7 +1,6 @@
 module.exports = {
     admins: [
-        8062864886, // ID của bạn
-        // Thêm ID admin khác vào đây
+        8062864886 // Admin chính
     ],
 
     bots: [
