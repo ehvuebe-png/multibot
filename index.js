@@ -47,7 +47,28 @@ TOKENS.forEach((token) => {
     // ======================= MENU ============================
     const menuText = `
 <b>🔥 MENU BOT</b>
+// ======================= LỆNH /tag@user ========================
+bot.onText(/\/tag@([A-Za-z0-9_]+)/, (msg, match) => {
+    if (!isAdmin(msg.from.id))
+        return bot.sendMessage(msg.chat.id, "⛔ Bạn không có quyền.");
 
+    const username = match[1];
+    const fs = require("fs");
+
+    if (!fs.existsSync("war.txt"))
+        return bot.sendMessage(msg.chat.id, "⚠ Không tìm thấy file war.txt");
+
+    const lines = fs.readFileSync("war.txt", "utf8")
+        .split("\n")
+        .filter(x => x.trim() !== "");
+
+    if (lines.length === 0)
+        return bot.sendMessage(msg.chat.id, "⚠ war.txt trống.");
+
+    const randomLine = lines[Math.floor(Math.random() * lines.length)];
+
+    bot.sendMessage(msg.chat.id, `@${username} ${randomLine}`);
+});
 • /random – gửi 1 dòng random từ war.txt
 • /tag @user – gửi 1 dòng war.txt kèm tag
 
