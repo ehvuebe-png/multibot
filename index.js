@@ -2,99 +2,89 @@ const fs = require("fs");
 const { Telegraf } = require("telegraf");
 const { bots, admins } = require("./config");
 
-// ===================== LOAD FILE WAR =====================
+// ===================== LOAD WAR FILE =====================
 let warLines = [];
 try {
-    warLines = fs.readFileSync("war.txt", "utf8").split("\n").filter(x => x.trim());
-} catch (e) {
-    console.log("⚠ Chưa có war.txt hoặc lỗi đọc file!");
+    warLines = fs.readFileSync("war.txt", "utf8")
+        .split("\n")
+        .filter(x => x.trim());
+} catch {
+    console.log("⚠ war.txt không tồn tại!");
 }
 
-// ===================== KIỂM TRA ADMIN =====================
+// ===================== CHECK ADMIN =====================
 function isAdmin(id) {
-    return admins.includes(String(id)); // so sánh dạng chuỗi để tránh lỗi
+    return admins.includes(String(id));
 }
 
-// ===================== KHỞI CHẠY MỖI BOT =====================
-bots.forEach(botInfo => {
+// ===================== START EACH BOT =====================
+bots.forEach(info => {
 
-    const bot = new Telegraf(botInfo.token);
+    const bot = new Telegraf(info.token);
 
-    // báo bot đang chạy
     bot.launch()
-        .then(() => console.log(`${botInfo.name} ĐÃ CHẠY ✔`))
-        .catch(err => console.log(`${botInfo.name} LỖI TOKEN ❌`, err));
+        .then(() => console.log(`${info.name} Đã chạy ✔`))
+        .catch(e => console.log(`${info.name} LỖI TOKEN ❌`, e));
 
-    // ===================== MENU =====================
-    const menuText = `
+    // =============== MENU ===============
+    const menu = `
 🔥 <b>MENU BOT</b>
 
-• /random – gửi 1 dòng random trong war.txt
-• /tag @user – tag 1 người + 1 dòng war.txt
-• /menu – xem menu
+• /random — gửi 1 dòng war.txt
+• /tag @user — tag + gửi war random
+• /menu — xem menu
 
 <b>ADMIN:</b>
 • /addadmin ID
 • /deladmin ID
-• /admins – xem danh sách admin
+• /admins — danh sách admin
 `;
 
     bot.command("menu", ctx => {
-        if (!isAdmin(ctx.from.id)) 
-            return ctx.reply("❌ Bạn không có quyền.");
-
-        return ctx.reply(menuText, { parse_mode: "HTML" });
+        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Bạn không có quyền.");
+        return ctx.reply(menu, { parse_mode: "HTML" });
     });
 
-    // ===================== RANDOM WAR =====================
+    // =============== RANDOM ===============
     bot.command("random", ctx => {
-        if (!isAdmin(ctx.from.id))
-            return ctx.reply("❌ Bạn không có quyền.");
-
+        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Bạn không có quyền.");
         let line = warLines[Math.floor(Math.random() * warLines.length)];
         ctx.reply(line);
     });
 
-    // ===================== TAG + WAR =====================
+    // =============== TAG ===============
     bot.hears(/\/tag (.+)/, ctx => {
-        if (!isAdmin(ctx.from.id))
-            return ctx.reply("❌ Bạn không có quyền.");
+        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Bạn không có quyền.");
 
-        let user = ctx.match[1];  
+        let user = ctx.match[1];
         let line = warLines[Math.floor(Math.random() * warLines.length)];
-
         ctx.reply(`${user} ${line}`);
     });
 
-    // ===================== THÊM ADMIN =====================
+    // =============== ADD ADMIN ===============
     bot.hears(/\/addadmin (\d+)/, ctx => {
-        if (!isAdmin(ctx.from.id)) 
-            return ctx.reply("❌ Bạn không có quyền.");
+        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Bạn không có quyền.");
 
-        let newID = ctx.match[1];
-        if (!admins.includes(newID)) admins.push(newID);
+        let id = ctx.match[1];
+        if (!admins.includes(id)) admins.push(id);
 
-        ctx.reply(`✔ Đã thêm admin: ${newID}`);
+        ctx.reply(`✔ Đã thêm admin: ${id}`);
     });
 
-    // ===================== XOÁ ADMIN =====================
+    // =============== DELETE ADMIN ===============
     bot.hears(/\/deladmin (\d+)/, ctx => {
-        if (!isAdmin(ctx.from.id))
-            return ctx.reply("❌ Bạn không có quyền.");
+        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Bạn không có quyền.");
 
-        let removeID = ctx.match[1];
-        let i = admins.indexOf(removeID);
+        let id = ctx.match[1];
+        let i = admins.indexOf(id);
         if (i !== -1) admins.splice(i, 1);
 
-        ctx.reply(`✔ Đã xoá admin: ${removeID}`);
+        ctx.reply(`✔ Đã xoá admin: ${id}`);
     });
 
-    // ===================== XEM ADMIN =====================
+    // =============== LIST ADMIN ===============
     bot.command("admins", ctx => {
-        if (!isAdmin(ctx.from.id))
-            return ctx.reply("❌ Bạn không có quyền.");
-
+        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Bạn không có quyền.");
         ctx.reply("📌 ADMIN LIST:\n" + admins.join("\n"));
     });
-
 });
