@@ -1,66 +1,65 @@
-const { Telegraf } = require("telegraf");
 const fs = require("fs");
+const { Telegraf } = require("telegraf");
 const config = require("./config");
 
-function isAdmin(id) {
-    return config.admins.includes(id);
-}
-
 function loadWarText() {
-    return fs.readFileSync("war.txt", "utf8");
+    if (fs.existsSync("war.txt")) {
+        return fs.readFileSync("war.txt", "utf8");
+    }
+    return "Không tìm thấy file war.txt";
 }
 
 config.bots.forEach((botInfo, index) => {
     const bot = new Telegraf(botInfo.token);
 
-    console.log(`${botInfo.name} đã khởi động`);
+    console.log(`${botInfo.name} (${botInfo.username}) đã khởi động...`);
 
     bot.start((ctx) => {
-        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Bạn không có quyền.");
-        ctx.reply(`${botInfo.name} đã chạy ✓`);
+        ctx.reply(`✅ ${botInfo.name} đã chạy!`);
+    });
+
+    bot.command("id", (ctx) => {
+        ctx.reply(`🆔 ID của bạn: ${ctx.from.id}`);
     });
 
     bot.command("menu", (ctx) => {
-        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Bạn không có quyền.");
+        if (!config.admins.includes(ctx.from.id)) {
+            return ctx.reply("❌ Bạn không có quyền.");
+        }
 
         ctx.reply(
-`📌 MENU ${botInfo.name}
+`📌 MENU ĐIỀU KHIỂN ${botInfo.name}
 
-🧨 /spam <số lần>  
-→ Spam nội dung từ war.txt  
+1️⃣ /spam — Spam bằng file war.txt  
+2️⃣ /stop — Dừng spam  
+3️⃣ /id — Lấy ID Telegram  
+4️⃣ Admin: ${config.admins.join(",")}
 
-🛑 /stop  
-→ Dừng spam
-
-👑 Admin:
-- Thêm admin: Sửa file config.js
-`
+🔥 Bot: ${botInfo.username}`
         );
     });
 
     let spamInterval = null;
 
     bot.command("spam", (ctx) => {
-        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Bạn không có quyền.");
-        
-        const args = ctx.message.text.split(" ");
-        const times = parseInt(args[1]);
-
-        if (!times) return ctx.reply("⚠️ Sai cú pháp. Dùng: /spam 50");
+        if (!config.admins.includes(ctx.from.id)) {
+            return ctx.reply("❌ Bạn không có quyền.");
+        }
 
         const text = loadWarText();
 
-        let count = 0;
+        ctx.reply("🚀 Bắt đầu spam...");
 
         spamInterval = setInterval(() => {
             ctx.reply(text);
-            count++;
-            if (count >= times) clearInterval(spamInterval);
-        }, 300);
+        }, 500);
     });
 
     bot.command("stop", (ctx) => {
-        if (!isAdmin(ctx.from.id)) return ctx.reply("❌ Bạn không có quyền.");
+        if (!config.admins.includes(ctx.from.id)) {
+            return ctx.reply("❌ Bạn không có quyền.");
+        }
+
         clearInterval(spamInterval);
         ctx.reply("🛑 Đã dừng spam.");
     });
