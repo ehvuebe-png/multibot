@@ -49,7 +49,7 @@ def keep_alive():
     t.start()
     print("Flask Keep-Alive server started.")
 
-TOKEN = '8008606599:AAFtCG73FhGBbYKYs2yh0Uwhrek37evZQPw'
+TOKEN = '8412569312:AAFdmWmOrPyehjl8KKL4U5qqfrN7jf0bv5s'
 OWNER_ID = 6924956412
 ADMIN_ID = 6924956412
 YOUR_USERNAME = '@Anhlathiendola3'
@@ -2746,4 +2746,5 @@ if __name__ == '__main__':
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
         except Exception as e:
             logger.error(f"Lỗi rồi, nghỉ 20s rồi thử lại: {e}")
+
             time.sleep(20)
