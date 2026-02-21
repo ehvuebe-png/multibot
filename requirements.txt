@@ -1,4 +1,2 @@
 pyTelegramBotAPI
 flask
-requests
-psutil
